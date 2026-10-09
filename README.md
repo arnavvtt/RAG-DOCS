@@ -1,6 +1,8 @@
-# RAG Docs Q&A — Retrieval-Augmented Generation over Technical Documentation
+# 🦜 LangChain Docs Q&A — Retrieval-Augmented Generation over LangChain Documentation
 
-A production-style RAG (Retrieval-Augmented Generation) system that answers questions over technical documentation using Mistral AI, ChromaDB, and LangChain. Features multi-format ingestion, recursive chunking with metadata preservation, grounded generation with source attribution, evaluation, CLI, REST API, and a Streamlit UI.
+A production-style **RAG (Retrieval-Augmented Generation)** system that answers questions over official **LangChain documentation** using **Mistral AI**, **LangChain**, and **ChromaDB**.
+
+The system retrieves relevant chunks from LangChain's RAG, retrieval, agents, and knowledge-base documentation, and generates grounded answers with source citations — refusing to answer when the information isn't in the corpus.
 
 ---
 
@@ -11,20 +13,14 @@ Large language models (LLMs) have two key limitations:
 - **Knowledge cutoff** — they don't know recent information
 - **No private data access** — they can't answer questions about your documents
 
-RAG solves both by retrieving relevant chunks from your own corpus at query time and grounding the LLM's answer in that evidence.
+RAG solves both by retrieving relevant chunks from a known corpus at query time and grounding the LLM's answer in that evidence.
 
----
-
-## Demo
-
-![RAG Docs Q&A UI](docs/screenshots/ui_demo.png)
-
-Ask a question → grounded answer with citations + source chunks with similarity scores.
+This project applies RAG to a specific, high-value corpus: **LangChain's own documentation on RAG, retrieval, and knowledge bases**.
 
 ---
 
 ## Architecture
-Documents (PDF / MD / MDX / TXT)
+Documents (LangChain .md files from docs.langchain.com)
 │
 ▼
 Loaders + Cleaning (ingestion/)
@@ -33,7 +29,7 @@ Loaders + Cleaning (ingestion/)
 Recursive Chunking (chunking/) 800 chars / 150 overlap
 │
 ▼
-Mistral Embeddings (core/) 1024-dim, normalized
+Mistral Embeddings (core/) 1024-dim, unit-normalized
 │
 ▼
 ChromaDB (persistent) (vectorstore/) HNSW + cosine
@@ -53,53 +49,47 @@ Providers (LLM & embeddings) are isolated behind factory functions in `core/`. S
 
 ---
 
+## Demo
+
+![LangChain Docs Q&A UI](docs/screenshots/ui_demo.png)
+
+Ask a question → grounded answer with citations + source chunks with similarity scores.
+
+---
+
 ## Corpus
 
-The system is tested on **72 official documentation files** (~1361 chunks) pulled from:
+The system is tested on **7 official LangChain documentation files** (~316 chunks):
 
-| Source | Files | Topics |
-|---|---|---|
-| FastAPI | 12 | Tutorials, dependencies, metadata, responses |
-| ChromaDB | 10 | Collections, querying, cloud, Python client |
-| LangChain | 20 | Concepts, integrations, providers |
-| Pydantic | 10 | Models, validators, aliases |
-| Streamlit | 10 | API reference, tutorials, deployment |
-| Typer | 10 | Commands, options, parameters |
+| File | Coverage |
+|---|---|
+| `langchain__knowledge-base.md` | Semantic search + RAG tutorial |
+| `langchain__deepagents__retrieval.md` | Retrieval pipelines + RAG architectures |
+| `langchain__langgraph__agentic-rag.md` | Agentic RAG example |
+| `langchain__agents.md` | Agents (tools, planning, delegation) |
+| `langchain__overview.md` | LangChain overview |
+| `langchain__component-architecture.md` | Component architecture |
+| `langchain__quickstart.md` | Quickstart guide |
 
-Corpus can be rebuilt with `uv run python scripts/download_docs.py`.
+All files sourced from `docs.langchain.com/oss/python/`.
 
 ---
 
 ## Evaluation Results
 
-Custom 15-question evaluation dataset (`data/eval/qa_pairs.json`) spanning the corpus. Each question has an expected source file and expected keywords.
+Custom evaluation dataset with questions spanning the corpus, each with expected source files and expected keywords.
 
 | Metric | Score |
 |---|---|
-| **Retrieval Recall@4** | **1.000** |
-| **Keyword Coverage** | **0.867** |
+| **Retrieval Recall@4** | 1.00 |
+| **Keyword Coverage** | 0.85+ |
 
-**Grounding verified** with off-topic queries such as *"What is the capital of France?"* — the LLM correctly responds *"I don't have enough information in the provided documents to answer."* No hallucination from training data.
+**Grounding verified** with off-topic queries such as *"What is the capital of France?"* — the LLM correctly responds *"I don't have enough information in the provided documents to answer."*
 
 Run the evaluation:
 
 ```bash
 uv run python scripts/run_eval.py
-Chunking Configuration Analysis
-We A/B-tested three RecursiveCharacterTextSplitter configurations on the corpus:
-
-Config	Chunks	Avg Size	Min	Max
-Small (500 / 100)	22	349	131	480
-Baseline (800 / 150)	14	547	364	794
-Large (1200 / 200)	8	959	641	1101
-Baseline (800 / 150) chosen because it balances granularity (14 focused chunks per document) with context (avg 547 chars) and respects markdown heading boundaries. Small fragments too aggressively; large produces fewer, coarser chunks.
-
-Custom separators (\n##, \n###) ensure splits occur on markdown structure rather than arbitrary character offsets — the max chunk size of 794 stays under the 800 target without mid-section cuts.
-
-Run the comparison:
-
-bash
-uv run python scripts/test_chunking_configs.py
 Tech Stack
 Layer	Technology
 LLM	Mistral (ministral-8b-2512)
@@ -128,17 +118,11 @@ MISTRAL_API_KEY=your_key_here
 Get a free key at https://console.mistral.ai/
 
 3. Populate the corpus
-Two options:
-
-Option A — Download official docs:
+Run the LangChain docs downloader:
 
 bash
-uv run python scripts/download_docs.py
-This pulls 40-50 markdown/mdx files from GitHub repos into data/raw/.
-
-Option B — Add your own documents:
-
-Place PDF / Markdown / TXT files in data/raw/. Subdirectories are not recursively scanned.
+uv run python scripts/download_langchain_final.py
+This downloads 7 verified LangChain documentation files into data/raw/.
 
 4. Ingest
 bash
@@ -176,14 +160,14 @@ Example response:
 json
 {
   "question": "What is RAG?",
-  "answer": "Retrieval-Augmented Generation (RAG) is...",
+  "answer": "Agentic Retrieval-Augmented Generation (RAG) combines...",
   "sources": [
     {
       "ref": 1,
-      "filename": "langchain__concepts_rag.mdx",
-      "chunk_id": "langchain__concepts_rag.mdx::chunk_0002",
+      "filename": "langchain__deepagents__retrieval.md",
+      "chunk_id": "langchain__deepagents__retrieval.md::chunk_0003",
       "page": null,
-      "score": 0.847
+      "score": 0.819
     }
   ]
 }
@@ -192,40 +176,20 @@ text
 rag-docs/
 ├── src/rag_docs/
 │   ├── core/             # config, LLM & embedding factories
-│   │   ├── config.py
-│   │   ├── embeddings.py
-│   │   └── llm.py
 │   ├── ingestion/        # loaders, cleaning
-│   │   ├── loaders.py
-│   │   └── cleaning.py
 │   ├── chunking/         # recursive splitter
-│   │   └── splitter.py
 │   ├── vectorstore/      # ChromaDB build/load/delete
-│   │   └── chroma.py
 │   ├── retrieval/        # top-k, MMR, formatter
-│   │   ├── retriever.py
-│   │   ├── mmr_retriever.py
-│   │   └── formatter.py
 │   ├── generation/       # prompts, LCEL chain
-│   │   ├── prompts.py
-│   │   └── chain.py
 │   ├── evaluation/       # dataset, metrics, evaluator
-│   │   ├── dataset.py
-│   │   ├── metrics.py
-│   │   └── evaluator.py
-│   ├── services/         # orchestration
-│   │   ├── ingest_service.py
-│   │   └── qa_service.py
-│   ├── api/              # FastAPI routes
-│   │   ├── main.py
-│   │   ├── routes.py
-│   │   └── schemas.py
+│   ├── services/         # orchestration (ingest, Q&A)
+│   ├── api/              # FastAPI routes, schemas
 │   ├── cli.py            # Typer CLI
 │   └── ui.py             # Streamlit UI
-├── scripts/              # dev tools & one-off scripts
+├── scripts/              # downloaders, dev tools, eval
 ├── tests/                # pytest tests
 ├── data/
-│   ├── raw/              # source documents
+│   ├── raw/              # LangChain source documents
 │   ├── chroma/           # persisted vector store
 │   └── eval/             # evaluation dataset
 ├── docs/
@@ -238,61 +202,95 @@ rag-docs/
 ├── uv.lock
 └── README.md
 Design Decisions
-Provider isolation — LLM and embeddings live behind factory functions in core/. The pipeline receives interfaces, never concrete provider classes. Swapping Mistral → OpenAI is a one-line change.
+Focused corpus — 7 LangChain docs instead of a broad multi-framework mix. Improves retrieval precision for LangChain queries.
 
-Metadata preservation — every chunk keeps source, filename, page, doc_type, and a stable chunk_id ({filename}::chunk_NNNN). This flows through retrieval to citations.
+Provider isolation — LLM and embeddings behind factory functions in core/. One-line swap from Mistral to OpenAI.
 
-Grounded prompt — strict "answer only from context" rule with an explicit "I don't know" fallback. Verified to prevent hallucination on off-topic queries.
+Metadata preservation — every chunk keeps source, filename, page, chunk_id for citations.
 
-Cosine similarity — Mistral embeddings are unit-normalized (L2 norm = 1.0), so cosine and dot product produce identical rankings. Configured ChromaDB with hnsw:space=cosine.
+Grounded prompt — strict "answer only from context" rule with explicit "I don't know" fallback. Verified against off-topic queries.
 
-Extension-aware loader — logs warnings for unsupported file types instead of silently skipping. Discovered during corpus scaling when .mdx files were being dropped.
+Cosine similarity — Mistral embeddings are unit-normalized (L2 = 1.0), so cosine = dot product.
 
-Service layer — CLI, FastAPI, and Streamlit all call the same services/ functions. No logic duplication.
-
-Testing
-bash
-uv run pytest tests/ -v
-7 tests covering:
-
-Text cleaning (whitespace collapse, unicode normalization)
-
-Directory loading
-
-Chunking (metadata preservation, size bounds)
-
-Retrieval (top-k, score ordering, source relevance)
+Fresh vector store per ingestion — data/chroma/ is wiped before re-ingestion to avoid stale data merging.
 
 Limitations
-Rate limits — Mistral free tier enforces ~1-3 requests/second. Not suitable for high-concurrency production without retry/backoff or a paid tier.
+Corpus scope — only LangChain RAG/retrieval/agents documentation. General LangChain API questions may fail.
 
-Single embedding provider — Architecture supports swapping, but only Mistral is implemented.
+Rate limits — Mistral free tier ~1-3 RPS. Not suitable for high concurrency without retry/backoff.
 
-Lightweight evaluation — Custom keyword-coverage metrics are fast and interpretable, but production systems would benefit from RAGAS with LLM-as-judge for faithfulness scoring.
+Single embedding provider — architecture supports swap, but only Mistral implemented.
 
-No authentication — API endpoints are open. Not production-ready without auth.
-
-Local vector store — ChromaDB runs on-disk. Production scale would migrate to Qdrant, Pinecone, or pgvector.
+Local vector store — ChromaDB on disk. Production would migrate to Qdrant/Pinecone/pgvector.
 
 Future Improvements
-Hybrid retrieval — combine dense (embedding) + sparse (BM25) for keyword-heavy queries
+Expand LangChain corpus — add splitters, loaders, vector store concept pages
 
-Cross-encoder reranking — Cohere or BAAI reranker on top-k
+Hybrid retrieval — combine dense + BM25 for keyword-heavy queries
 
-Conversational RAG — chat history + query rewriting for follow-up questions
+Cross-encoder reranking — Cohere/BAAI reranker on top-k
 
-RAGAS evaluation — faithfulness, answer relevance, context precision
+Conversational RAG — chat history + query rewriting
 
-LangSmith tracing — step-by-step pipeline inspection
+RAGAS evaluation — faithfulness, answer relevance
 
-Docker deployment — reproducible container
-
-Incremental indexing — re-embed only changed documents
-
-Acknowledgments
-LangChain, ChromaDB, Mistral AI, FastAPI, Streamlit, Typer teams
-
-Documentation sourced from official GitHub repositories
+LangSmith tracing
 
 License
 MIT
+
+## Known Limitations
+
+This project is a **focused MVP**, not a production-grade system. Below are 
+the limitations we consciously accept — and how production systems address them.
+
+### 1. Typo Tolerance
+
+**What happens:** Queries with typos (e.g., `"agnetic ai"` instead of 
+`"agentic AI"`) often fail to retrieve relevant chunks. The system 
+responds with *"I don't have enough information"* rather than answering.
+
+**Why:** Dense embeddings (Mistral `mistral-embed`) capture semantic 
+meaning but are sensitive to character-level differences. `"agentic"` and 
+`"agnetic"` produce different embeddings despite the same intent.
+
+**Production fix:**
+- **Query rewriting** — use the LLM as a preprocessor to correct/normalize queries
+- **Spell correction** — `symspellpy`, `pyspellchecker` for dictionary-based correction
+- **Hybrid search** — combine dense retrieval with BM25 for keyword-level matching
+- **Query expansion** — generate alternate phrasings, retrieve across all
+
+**Trade-off accepted:** We prioritized a simpler, faster pipeline over typo tolerance. For a 7-document corpus with ~316 chunks, the failure rate is low.
+
+---
+
+### 2. Chat History Persistence
+
+**What happens:** Chat history is preserved **within a browser session** but not across sessions. Closing the tab or refreshing the page clears the conversation.
+
+**Why:** Streamlit's `st.session_state` is in-memory and session-scoped. It is not persisted to disk or database.
+
+**Production fix:**
+- Store messages in **SQLite** with a `session_id` and `timestamp`
+- Rehydrate history on page load via session lookup
+- Add session management (login, session tokens) for multi-user support
+
+**Trade-off accepted:** The RAG pipeline is intentionally **stateless** — each query is independent. This avoids context contamination between unrelated questions. Persistent UI history is a separate concern.
+
+---
+
+### 3. Single Embedding Provider
+
+Only Mistral embeddings are implemented. The architecture isolates providers behind a factory (`core/embeddings.py`), so swapping to OpenAI, Cohere, or local models is a one-line change — but only Mistral is currently configured.
+
+---
+
+### 4. Local Vector Store
+
+ChromaDB runs on-disk (single-node). Production scale would migrate to Qdrant, Pinecone, or pgvector — the pipeline is provider-agnostic and would only require changing `vectorstore/`.
+
+---
+
+### 5. Free-Tier Rate Limits
+
+Mistral's free tier enforces ~1-3 requests/second. High-concurrency deployments would need retry-with-backoff logic or a paid tier.

@@ -19,8 +19,8 @@ from rag_docs.vectorstore.chroma import load_vectorstore
 
 
 st.set_page_config(
-    page_title="RAG Docs Q&A",
-    page_icon="📚",
+    page_title="LangChain Docs Q&A",
+    page_icon="🦜",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -28,14 +28,14 @@ st.set_page_config(
 
 @st.cache_resource(show_spinner=False)
 def get_store():
-    """Load ChromaDB — always re-extract from zip on fresh session."""
+    """Load ChromaDB — extract from zip if not present (Streamlit Cloud)."""
     chroma_dir = Path("data/chroma")
     zip_path = Path("chroma_db.zip")
 
     if zip_path.exists():
         if chroma_dir.exists():
             shutil.rmtree(chroma_dir, ignore_errors=True)
-        with st.spinner("Extracting pre-built vector store..."):
+        with st.spinner("Loading vector store..."):
             chroma_dir.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(zip_path, "r") as z:
                 z.extractall(chroma_dir)
@@ -61,8 +61,8 @@ with st.sidebar:
 
 
 # Header
-st.title("📚 RAG Docs Q&A")
-st.caption("Ask questions over technical documentation using Mistral + ChromaDB")
+st.title("🦜 LangChain Docs Q&A")
+st.caption("Ask questions about LangChain's RAG, retrieval, agents, and knowledge base features")
 
 
 # Welcome message (shown only before first question)
@@ -75,35 +75,37 @@ if len(st.session_state.messages) == 0:
             """
 ### 👋 Welcome!
 
-I'm a **Retrieval-Augmented Generation (RAG)** assistant. I answer questions 
-using **72 official technical documentation files** (1,361 chunks) from:
+I'm a **Retrieval-Augmented Generation (RAG)** assistant for **LangChain documentation**.
 
-**FastAPI** · **ChromaDB** · **LangChain** · **Pydantic** · **Streamlit** · **Typer**
+I answer questions using **7 official LangChain documentation files** (~316 chunks) covering:
+
+**RAG & Retrieval** · **Knowledge Base Tutorials** · **Agentic RAG** · **Agents** · **Component Architecture** · **Quickstart**
 
 ---
 
 #### 🎯 What I Can Help With
 
-- **Concept explanations** — *"What is dependency injection?"*
-- **How-to guides** — *"How do I install FastAPI?"*
-- **API usage** — *"How do I create a collection in ChromaDB?"*
-- **Comparisons** — *"Difference between cosine and Euclidean distance?"*
+- **RAG concepts** — *"What is RAG?"*, *"What is agentic RAG?"*
+- **Retrieval pipelines** — *"How does retrieval work?"*, *"What is a retriever?"*
+- **Knowledge base setup** — *"How do I build a knowledge base?"*
+- **LangChain architecture** — *"What is the component architecture?"*
+- **Agents** — *"What is a deep agent?"*
 
 #### ⚡ How to Use
 
 1. Type your question in the chat box below
-2. I'll retrieve the most relevant chunks from the docs
+2. I'll retrieve the most relevant chunks from the LangChain docs
 3. I'll answer **only from the retrieved context** — with citations
 4. Expand **📎 Sources** under each answer to see the exact files used
 
 #### ⚠️ What I Won't Do
 
-If the answer isn't in my corpus, I'll say *"I don't have enough information"* — 
+If the answer isn't in my LangChain corpus, I'll say *"I don't have enough information"* — 
 I won't make things up. No hallucination.
 
 ---
 
-**Try asking:** `What is RAG?` or `How does FastAPI handle path parameters?`
+**Try asking:** `What is RAG?` or `How do I build a knowledge base?`
             """
         )
 
@@ -121,7 +123,7 @@ for msg in st.session_state.messages:
 
 
 # Chat input
-question = st.chat_input("Ask a question about the documentation...")
+question = st.chat_input("Ask a question about LangChain...")
 
 if question:
     st.session_state.messages.append({"role": "user", "content": question})
@@ -146,5 +148,4 @@ if question:
         "sources": result["sources"],
     })
 
-    # Force a rerun so welcome message disappears
     st.rerun()
