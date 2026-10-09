@@ -23,13 +23,18 @@ st.caption("Ask questions over technical documentation using Mistral + ChromaDB"
 
 
 @st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def get_store():
-    """Load ChromaDB — extract from zip if not present (Streamlit Cloud)."""
+    """Load ChromaDB — always re-extract from zip on fresh session."""
     chroma_dir = Path("data/chroma")
     zip_path = Path("chroma_db.zip")
 
-    # On Streamlit Cloud: ChromaDB is not gitignored, comes as a zip.
-    if not chroma_dir.exists() and zip_path.exists():
+    # Force re-extract: if zip exists AND chroma dir exists, wipe and re-extract.
+    # This guarantees the deployed app uses the latest pre-built vector store.
+    if zip_path.exists():
+        if chroma_dir.exists():
+            import shutil
+            shutil.rmtree(chroma_dir, ignore_errors=True)
         with st.spinner("Extracting pre-built vector store..."):
             chroma_dir.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(zip_path, "r") as z:
