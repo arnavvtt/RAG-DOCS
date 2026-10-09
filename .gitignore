@@ -7,9 +7,10 @@ __pycache__/
 .env
 
 # Data & Vector Store
-data/
-chroma/
-
+# Data — ignore everything except the demo corpus for Streamlit
+data/*
+!data/raw_demo/
+!data/raw_demo/**
 # IDE
 .vscode/
 .idea/
