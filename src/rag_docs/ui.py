@@ -1,3 +1,13 @@
+import os
+
+# Streamlit Cloud: inject secrets as env vars BEFORE importing config.
+try:
+    import streamlit as st
+    if "MISTRAL_API_KEY" in st.secrets:
+        os.environ["MISTRAL_API_KEY"] = st.secrets["MISTRAL_API_KEY"]
+except Exception:
+    pass
+
 import streamlit as st
 
 from rag_docs.core.embeddings import get_embeddings
