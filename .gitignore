@@ -1,0 +1,22 @@
+# Virtual Environment
+.venv/
+__pycache__/
+*.pyc
+
+# Environment Variables
+.env
+
+# Data & Vector Store
+data/
+chroma/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# uv
+.python-version

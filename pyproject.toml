@@ -1,0 +1,36 @@
+[project]
+name = "rag-docs"
+version = "0.1.0"
+description = "A modular RAG system for technical documentation Q&A using Mistral and ChromaDB"
+readme = "README.md"
+authors = [
+    { name = "arnavvtt", email = "tyagiarnav24@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "chromadb>=1.5.9",
+    "fastapi>=0.143.0",
+    "langchain-chroma>=1.1.0",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.6.6",
+    "langchain-mistralai>=1.1.6",
+    "pydantic-settings>=2.15.0",
+    "pypdf>=6.19.0",
+    "python-dotenv>=1.2.4",
+    "rich>=15.0.0",
+    "streamlit>=1.65.0",
+    "typer>=0.27.3",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+rag-docs = "rag_docs.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
