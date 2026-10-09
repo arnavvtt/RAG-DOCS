@@ -1,4 +1,5 @@
 import os
+import zipfile
 from pathlib import Path
 
 # Streamlit Cloud: inject secrets as env vars BEFORE importing config.
@@ -13,7 +14,6 @@ import streamlit as st
 
 from rag_docs.core.embeddings import get_embeddings
 from rag_docs.services.qa_service import ask
-from rag_docs.services.ingest_service import ingest_directory
 from rag_docs.vectorstore.chroma import load_vectorstore
 
 
@@ -22,26 +22,26 @@ st.title("📚 RAG Docs Q&A")
 st.caption("Ask questions over technical documentation using Mistral + ChromaDB")
 
 
-def _pick_raw_dir() -> str:
-    if Path("data/raw_demo").exists() and any(Path("data/raw_demo").iterdir()):
-        return "data/raw_demo"
-    return "data/raw"
-
-
 @st.cache_resource(show_spinner=False)
 def get_store():
-    store = load_vectorstore(get_embeddings())
-    if store is not None and store._collection.count() > 0:
-        return store
-    with st.spinner("Setting up vector store (first-time only, ~2-3 min)..."):
-        store = ingest_directory(raw_dir=_pick_raw_dir())
-    return store
+    """Load ChromaDB — extract from zip if not present (Streamlit Cloud)."""
+    chroma_dir = Path("data/chroma")
+    zip_path = Path("chroma_db.zip")
+
+    # On Streamlit Cloud: ChromaDB is not gitignored, comes as a zip.
+    if not chroma_dir.exists() and zip_path.exists():
+        with st.spinner("Extracting pre-built vector store..."):
+            chroma_dir.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(zip_path, "r") as z:
+                z.extractall(chroma_dir)
+
+    return load_vectorstore(get_embeddings())
 
 
 store = get_store()
 
 if store is None or store._collection.count() == 0:
-    st.error("Vector store is empty. Ingestion failed — check app logs.")
+    st.error("Vector store not found. Run `uv run rag-docs ingest` locally first.")
     st.stop()
 
 
@@ -63,7 +63,9 @@ for msg in st.session_state.messages:
         if "sources" in msg:
             with st.expander("📎 Sources"):
                 for s in msg["sources"]:
-                    st.write(f"**[{s['ref']}]** {s['filename']} — score `{s['score']}`")
+                    st.write(
+                        f"**[{s['ref']}]** {s['filename']} — score `{s['score']}`"
+                    )
 
 
 question = st.chat_input("Ask a question...")
@@ -81,7 +83,9 @@ if question:
 
         with st.expander("📎 Sources", expanded=True):
             for s in result["sources"]:
-                st.write(f"**[{s['ref']}]** {s['filename']} — score `{s['score']}`")
+                st.write(
+                    f"**[{s['ref']}]** {s['filename']} — score `{s['score']}`"
+                )
 
     st.session_state.messages.append({
         "role": "assistant",
